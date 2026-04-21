@@ -2,14 +2,14 @@
 
 Замер скорости через API [Яндекс.Интернетометра](https://yandex.ru/internet): IP, задержка, download/upload, опционально JSON. Неофициальный клиент; см. [ограничения](https://yandex.ru/legal/internet_termsofuse/) сервисов Яндекса при использовании.
 
-**Сборка из исходников и кросс-компиляция:** [README.build.md](README.build.md).
+Сборка из исходников: [README.build.md](README.build.md).
 
 ## Скачать (последний релиз)
 
-Страница релиза: [**latest**](https://github.com/Palymer/yandex-speed-cli/releases/latest) · [все релизы](https://github.com/Palymer/yandex-speed-cli/releases).
+[**Страница latest**](https://github.com/Palymer/yandex-speed-cli/releases/latest) · [все релизы](https://github.com/Palymer/yandex-speed-cli/releases).
 
-| ОС / архитектура | Прямая ссылка (latest) |
-|------------------|------------------------|
+| ОС / архитектура | Ссылка |
+|------------------|--------|
 | Linux x86_64 | [скачать](https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-linux-amd64) |
 | Linux x86 | [скачать](https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-linux-386) |
 | Linux ARM64 | [скачать](https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-linux-arm64) |
@@ -19,55 +19,71 @@
 | macOS Apple Silicon | [скачать](https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-darwin-arm64) |
 | Контрольные суммы | [SHA256SUMS](https://github.com/Palymer/yandex-speed-cli/releases/latest/download/SHA256SUMS) |
 
-Шаблон: `https://github.com/Palymer/yandex-speed-cli/releases/latest/download/<имя_файла>`.
-
 Установка через Go: `go install github.com/Palymer/yandex-speed-cli@latest`
 
-## Тесты
+## Запуск
 
-### Локально (без сети к Яндексу для компиляции)
+Короткий замер без паузы и без геолокации по IP:
 
 ```bash
-gofmt -l .          # должно быть пусто
-go vet ./...
-go test ./... -count=1
-go build -trimpath -ldflags="-s -w" .
+yandex-speed-cli -quick -no-wait -no-geo
 ```
 
-### Локальный прогон замера (нужен интернет)
-
-Короткий сценарий без паузы и без геолокации:
+JSON в stdout:
 
 ```bash
+yandex-speed-cli -quick -no-wait -no-geo -json
+```
+
+## Загрузка с GitHub и проверка
+
+Подставьте нужный URL из таблицы выше (другая архитектура — другое имя файла в ссылке).
+
+**Linux x86_64** — `curl`:
+
+```bash
+curl -fL "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-linux-amd64" -o ./yandex-speed-cli && chmod +x ./yandex-speed-cli
 ./yandex-speed-cli -quick -no-wait -no-geo
 ```
 
-Машиночитаемый вывод: `./yandex-speed-cli -quick -no-wait -no-geo -json`.
-
-### GitHub Actions
-
-| Workflow | Когда | Что проверяется |
-|----------|--------|-----------------|
-| [CI](.github/workflows/ci.yml) | push / PR в `main`, `master` | `gofmt`, `go vet`, `go test`, сборка из исходников; затем скачивание бинарника из [latest release](https://github.com/Palymer/yandex-speed-cli/releases/latest) под ОС раннера и совпадение `./… -version` с тегом релиза (API). Если релиза ещё нет или CDN отдал не 200 — шаг smoke **пропускается** с `::notice::` в логе. |
-| [Release](.github/workflows/release.yml) | push в `main` / `master`, вручную | `VERSION` → тег `v…`, `gofmt` / `vet` / `test`, `make all`, проверка `-version` у `dist/yandex-speed-cli-linux-amd64`, `SHA256SUMS`, публикация [релиза](https://github.com/Palymer/yandex-speed-cli/releases/latest). |
-
-### Быстрый smoke бинарника с GitHub (curl / wget)
-
-Пример для **Linux x86_64** (имя файла см. в таблице выше):
+**Linux x86_64** — `wget`:
 
 ```bash
-BASE="https://github.com/Palymer/yandex-speed-cli/releases/latest/download"
-curl -fL "$BASE/yandex-speed-cli-linux-amd64" -o ./yandex-speed-cli && chmod +x ./yandex-speed-cli
+wget -O ./yandex-speed-cli "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-linux-amd64" && chmod +x ./yandex-speed-cli
 ./yandex-speed-cli -quick -no-wait -no-geo
 ```
 
+**macOS Intel** — `curl`:
+
 ```bash
-BASE="https://github.com/Palymer/yandex-speed-cli/releases/latest/download"
-wget -O ./yandex-speed-cli "$BASE/yandex-speed-cli-linux-amd64" && chmod +x ./yandex-speed-cli
+curl -fL "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-darwin-amd64" -o ./yandex-speed-cli && chmod +x ./yandex-speed-cli
 ./yandex-speed-cli -quick -no-wait -no-geo
 ```
 
-## Флаги (для сценариев тестов)
+**macOS Apple Silicon** — `curl`:
+
+```bash
+curl -fL "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-darwin-arm64" -o ./yandex-speed-cli && chmod +x ./yandex-speed-cli
+./yandex-speed-cli -quick -no-wait -no-geo
+```
+
+**Windows x64** — PowerShell:
+
+```powershell
+Invoke-WebRequest -Uri "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-windows-amd64.exe" -OutFile ".\yandex-speed-cli.exe"
+.\yandex-speed-cli.exe -quick -no-wait -no-geo
+```
+
+**Windows x64** — `curl.exe`:
+
+```powershell
+curl.exe -fL "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-windows-amd64.exe" -o ".\yandex-speed-cli.exe"
+.\yandex-speed-cli.exe -quick -no-wait -no-geo
+```
+
+Для **Windows x86** в URL используйте имя файла `yandex-speed-cli-windows-386.exe`.
+
+## Флаги
 
 | Флаг | Назначение |
 |------|------------|
@@ -80,7 +96,7 @@ wget -O ./yandex-speed-cli "$BASE/yandex-speed-cli-linux-amd64" && chmod +x ./ya
 | `-no-wait` | Без ожидания Enter |
 | `-no-geo` | Без ipwho.is |
 
-`yandex-speed-cli -h` — полный список.
+Полный список: `yandex-speed-cli -h`.
 
 ## Лицензия
 
