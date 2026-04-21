@@ -54,7 +54,7 @@ jobs:
             echo "Создан и отправлен тег ${TAG}."
           fi
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
