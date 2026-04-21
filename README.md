@@ -21,73 +21,65 @@
 
 Установка через Go: `go install github.com/Palymer/yandex-speed-cli@latest`
 
-## Запуск
+## Запуск (стандарт — быстрый тест)
 
-Геолокация по IP (ipwho.is) **включена по умолчанию** — флаг `-no-geo` только если регион не нужен.
+Геолокация по IP (ipwho.is) **включена по умолчанию** — `-no-geo` только если регион не нужен.
 
-Быстрый замер (~4 с на канал), без паузы в конце:
+Рекомендуемый режим: **быстрый** замер (короткие фазы), без паузы «нажмите Enter» в конце:
 
 ```bash
 yandex-speed-cli -quick -no-wait
 ```
 
-JSON:
+Вывод JSON:
 
 ```bash
 yandex-speed-cli -quick -no-wait -json
 ```
 
-**Длительный замер** (например **30 с** на download/upload) — без `-quick` (он задаёт свою короткую длительность), явно укажите `-duration`:
+## Замер 30 секунд
+
+Фазы download и upload длятся столько секунд, сколько задано в `-duration`. Значение **30** задаётся так:
+
+1. **Не используйте** `-quick` — он включает короткий тест и перекрывает `-duration`.
+2. Укажите **`-duration 30`** (секунды — число с плавающей точкой, можно `30` или `30.0`).
 
 ```bash
 yandex-speed-cli -duration 30 -no-wait
 ```
 
-По умолчанию без `-duration` фазы DL/UL длятся **10** секунд.
+Если не задавать ни `-quick`, ни `-duration`, длительность DL/UL по умолчанию **10** секунд.
 
-## Загрузка с GitHub и проверка
+## Загрузка с GitHub и быстрый тест
 
-Подставьте URL из таблицы выше. Ниже короткое имя файла: `ysc` / `ysc.exe`; **curl** пишет файл флагом `-o`, **wget** — `-O`.
+Подставьте URL из таблицы выше. Файл сохраняйте как `ysc` / `ysc.exe`: **curl** — `-o`, **wget** — `-O`.
 
-**Linux x86_64** — `curl -o` *или* `wget -O` (одна строка: скачать → права → запуск):
+**Linux x86_64:**
 
-```bash
-curl -fL "$URL" -o ysc && chmod +x ysc && ./ysc -quick -no-wait
-# или
-wget -O ysc "$URL" && chmod +x ysc && ./ysc -quick -no-wait
-```
+| Инструмент | Одна строка (скачать → права → **быстрый** замер) |
+|------------|---------------------------------------------------|
+| `curl` | `curl -fL "$URL" -o ysc && chmod +x ysc && ./ysc -quick -no-wait` |
+| `wget` | `wget -O ysc "$URL" && chmod +x ysc && ./ysc -quick -no-wait` |
 
-С полной ссылкой и **30 с** на DL/UL:
-
-```bash
-curl -fL "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-linux-amd64" -o ysc && chmod +x ysc && ./ysc -duration 30 -no-wait
-```
+Пример с полной ссылкой:
 
 ```bash
-wget -O ysc "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-linux-amd64" && chmod +x ysc && ./ysc -duration 30 -no-wait
+curl -fL "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-linux-amd64" -o ysc && chmod +x ysc && ./ysc -quick -no-wait
 ```
 
-**macOS Intel** — только `curl`:
+**macOS Intel** — `curl`:
 
 ```bash
 curl -fL "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-darwin-amd64" -o ysc && chmod +x ysc && ./ysc -quick -no-wait
 ```
 
-```bash
-curl -fL "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-darwin-amd64" -o ysc && chmod +x ysc && ./ysc -duration 30 -no-wait
-```
-
-**macOS Apple Silicon**:
+**macOS Apple Silicon** — `curl`:
 
 ```bash
 curl -fL "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-darwin-arm64" -o ysc && chmod +x ysc && ./ysc -quick -no-wait
 ```
 
-```bash
-curl -fL "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-darwin-arm64" -o ysc && chmod +x ysc && ./ysc -duration 30 -no-wait
-```
-
-**Windows x64** — `Invoke-WebRequest -OutFile` *или* `curl.exe -o`:
+**Windows x64:**
 
 ```powershell
 iwr "URL" -OutFile ysc.exe; .\ysc.exe -quick -no-wait
@@ -95,17 +87,23 @@ iwr "URL" -OutFile ysc.exe; .\ysc.exe -quick -no-wait
 curl.exe -fL "URL" -o ysc.exe; .\ysc.exe -quick -no-wait
 ```
 
-С полной ссылкой и **30 с**:
-
 ```powershell
-curl.exe -fL "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-windows-amd64.exe" -o ysc.exe; .\ysc.exe -duration 30 -no-wait
+curl.exe -fL "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-windows-amd64.exe" -o ysc.exe; .\ysc.exe -quick -no-wait
+```
+
+Для **Windows x86** в URL используйте `yandex-speed-cli-windows-386.exe`.
+
+### После загрузки: замер 30 секунд
+
+Тот же бинарник (`./ysc` / `.\ysc.exe`), но **без** `-quick` и с **`-duration 30`**:
+
+```bash
+./ysc -duration 30 -no-wait
 ```
 
 ```powershell
-iwr "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex-speed-cli-windows-amd64.exe" -OutFile ysc.exe; .\ysc.exe -duration 30 -no-wait
+.\ysc.exe -duration 30 -no-wait
 ```
-
-Для **Windows x86** замените в URL имя на `yandex-speed-cli-windows-386.exe`.
 
 ## Флаги
 
@@ -113,7 +111,7 @@ iwr "https://github.com/Palymer/yandex-speed-cli/releases/latest/download/yandex
 |------|------------|
 | `-version` | Версия сборки |
 | `-quick` | Короткий замер (перекрывает `-duration`) |
-| `-duration` | Длительность DL/UL в секундах (по умолчанию 10) |
+| `-duration` | Длительность DL/UL в секундах (по умолчанию **10**, если не задан `-quick`) |
 | `-workers`, `-ping` | Потоки и число пингов |
 | `-no-download` / `-no-upload` | Отключить фазу |
 | `-json` | Вывод JSON |
