@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: yandex-speed-cli-linux-amd64
+            bin: yandex-speed-cli-rel
+          - os: windows-latest
+            asset: yandex-speed-cli-windows-amd64.exe
+            bin: yandex-speed-cli-rel.exe
+          - os: macos-latest
+            asset: yandex-speed-cli-darwin-arm64
+            bin: yandex-speed-cli-rel
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Go fmt
+        if: runner.os == 'Linux'
+        run: test -z "$(gofmt -l .)"
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./... -count=1
+
+      - name: Build
+        run: go build -trimpath -ldflags="-s -w" .
+
+      - name: Smoke test binary from latest GitHub Release
+        shell: bash
+        env:
+          REPO: Palymer/yandex-speed-cli
+        run: |
+          set -euo pipefail
+          BASE="https://github.com/${REPO}/releases/latest/download"
+          URL="${BASE}/${{ matrix.asset }}"
+          code="$(curl -sS -o "${{ matrix.bin }}" -w "%{http_code}" -L "$URL" || echo "000")"
+          if [ "$code" != "200" ]; then
+            echo "::notice::Артефакт latest release недоступен (HTTP ${code}). Пропуск до первого успешного релиза или пока не подхватится CDN."
+            exit 0
+          fi
+          chmod +x "${{ matrix.bin }}" 2>/dev/null || true
+          jcode="$(curl -sS -o /tmp/ysc-release.json -w "%{http_code}" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${REPO}/releases/latest" || echo "000")"
+          if [ "$jcode" != "200" ]; then
+            echo "::notice::GitHub API releases/latest вернул HTTP ${jcode}. Пропуск сравнения версии."
+            exit 0
+          fi
+          TAG="$(python3 -c 'import json; print(json.load(open("/tmp/ysc-release.json"))["tag_name"])')"
+          got="$(./${{ matrix.bin }} -version)"
+          if [ "$got" != "$TAG" ]; then
+            echo "::error::Ожидалась версия из latest release ($TAG), получено: $got"
+            exit 1
+          fi
+          echo "Latest release $TAG: -version совпадает."

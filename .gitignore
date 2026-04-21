@@ -1,0 +1,29 @@
+# Сборка
+/dist/
+*.exe
+*.exe~
+
+# Go
+*.test
+*.out
+*.prof
+coverage.*
+*.coverprofile
+vendor/
+
+# IDE / редакторы
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ОС
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Логи и временные файлы
+*.log
+*.tmp
+*.temp

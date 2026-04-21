@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Версия из VERSION и тег
+        id: ver
+        run: |
+          set -euo pipefail
+          raw="$(tr -d ' \t\r\n' < VERSION)"
+          if ! echo "$raw" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::VERSION должен быть SemVer вида 1.2.3 (сейчас: '$raw')"
+            exit 1
+          fi
+          echo "base=$raw" >> "$GITHUB_OUTPUT"
+          echo "tag=v${raw}" >> "$GITHUB_OUTPUT"
+
+      - name: Синхронизация тега с main
+        env:
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git fetch origin --tags --force
+          HEAD_SHA=$(git rev-parse HEAD)
+          if git show-ref --verify --quiet "refs/tags/${TAG}"; then
+            TAG_SHA=$(git rev-parse "${TAG}^{}")
+            if [ "$TAG_SHA" != "$HEAD_SHA" ]; then
+              echo "::error::Тег ${TAG} уже указывает на другой коммит. Увеличьте версию в файле VERSION и снова запушьте в main."
+              exit 1
+            fi
+            echo "Тег ${TAG} уже на HEAD — обновляем артефакты релиза."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "${TAG}" -m "Release ${TAG}"
+            git push origin "refs/tags/${TAG}"
+            echo "Создан и отправлен тег ${TAG}."
+          fi
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Go fmt
+        run: test -z "$(gofmt -l .)"
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./... -count=1
+
+      - name: Cross-build
+        env:
+          VERSION: ${{ steps.ver.outputs.tag }}
+        run: make all VERSION="$VERSION"
+
+      - name: Проверка версии в собранном Linux-бинарнике
+        env:
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          set -euo pipefail
+          BIN="dist/yandex-speed-cli-linux-amd64"
+          chmod +x "$BIN"
+          got="$("$BIN" -version)"
+          if [ "$got" != "$TAG" ]; then
+            echo "::error::В бинарнике версия '$got', ожидалось '$TAG'"
+            exit 1
+          fi
+
+      - name: SHA256 checksums
+        working-directory: dist
+        run: |
+          sha256sum yandex-speed-cli-* > SHA256SUMS
+          sha256sum -c SHA256SUMS
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: ${{ steps.ver.outputs.tag }}
+          files: dist/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          make_latest: true
+          allowUpdates: true
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
